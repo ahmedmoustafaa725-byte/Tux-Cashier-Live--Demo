@@ -22,6 +22,8 @@ import {
   runTransaction, // <-- atomic counter
 } from "firebase/firestore";
 
+const DEMO_MODE = true;
+
 export const toIso = (v) => {
   if (!v) return null;
   if (v instanceof Date) return v.toISOString();
@@ -471,6 +473,10 @@ const EMAILJS_PUBLIC_KEY = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
 
 
 async function sendEmailJsEmail(templateParams = {}) {
+  if (DEMO_MODE) {
+    console.info("Demo mode: EmailJS disabled.", templateParams);
+    return;
+  }
   const fetchFn =
     typeof fetch === "function"
       ? fetch
@@ -526,6 +532,7 @@ async function sendEmailJsEmail(templateParams = {}) {
 }
 
 function ensureFirebase() {
+  if (DEMO_MODE) return { auth: null, db: null };
   const theApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(theApp);
   const db = getFirestore(theApp);
@@ -533,6 +540,7 @@ function ensureFirebase() {
 }
 
 function ensureOnlineFirebase() {
+  if (DEMO_MODE) return null;
   if (!onlineFirebaseConfig?.projectId) return null;
   try {
     return getApp(ONLINE_FIREBASE_APP_NAME);
@@ -546,6 +554,7 @@ function ensureOnlineFirebase() {
   }
 }
 function getOnlineServices() {
+  if (DEMO_MODE) return { onlineAuth: null, onlineDb: null };
   const app = ensureOnlineFirebase();
   if (!app) return { onlineAuth: null, onlineDb: null };
   return {
@@ -555,7 +564,7 @@ function getOnlineServices() {
 }
 
 
-const SHOP_ID = "tux";
+const SHOP_ID = DEMO_MODE ? "tux-demo" : "tux";
 // In your React POS app code (App.js)
 
 const ONLINE_ORDER_COLLECTIONS = [
@@ -566,7 +575,7 @@ const ONLINE_ORDER_COLLECTIONS = [
     constraints: [where("shopId", "==", SHOP_ID)], // This filter remains correct
   },
 ];
-const LS_KEY = "tux_pos_local_state_v1";
+const LS_KEY = DEMO_MODE ? "tux_pos_demo_local_state_v1" : "tux_pos_local_state_v1";
 function loadLocal() {
 
   try { 
@@ -727,6 +736,7 @@ function SundayWeekPicker({ selectedSunday, onSelect, dark = false, btnBorder = 
 const [onlineFbUser, setOnlineFbUser] = useState(null);
 
 useEffect(() => {
+  if (DEMO_MODE) return undefined;
   const { onlineAuth } = getOnlineServices();
   if (!onlineAuth) return;
 
@@ -744,6 +754,7 @@ useEffect(() => {
   return () => unsub();
 }, []);
 function getDbForSource(source) {
+  if (DEMO_MODE) return null;
   if (source === "menu") {
     const { onlineDb } = getOnlineServices();
     return onlineDb;        // tux-menu Firestore
@@ -752,20 +763,33 @@ function getDbForSource(source) {
   return db;                // primary POS Firestore
 }
 
-// Example when wiring listeners:
-ONLINE_ORDER_COLLECTIONS.forEach((def) => {
-  const dbForThis = getDbForSource(def.source);
-  if (!dbForThis) return;
+useEffect(() => {
+  if (DEMO_MODE) return undefined;
+  const unsubscribers = [];
+  ONLINE_ORDER_COLLECTIONS.forEach((def) => {
+    const dbForThis = getDbForSource(def.source);
+    if (!dbForThis) return;
 
-  // (Optional) gate menu listeners until anonymous auth is ready
-  if (def.source === "menu" && !onlineFbUser) return;
+    // (Optional) gate menu listeners until anonymous auth is ready
+    if (def.source === "menu" && !onlineFbUser) return;
 
-  const colRef = collection(dbForThis, ...def.path);
-  const q = query(colRef, orderBy("createdAt", "desc"));
-  onSnapshot(q, (snap) => {
-    // merge/dedupe as you already do
+    const colRef = collection(dbForThis, ...def.path);
+    const q = query(colRef, orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      // merge/dedupe as you already do
+    });
+    unsubscribers.push(unsub);
   });
-});
+  return () => {
+    unsubscribers.forEach((unsub) => {
+      try {
+        unsub();
+      } catch (err) {
+        console.error("Error cleaning up online order listener", err);
+      }
+    });
+  };
+}, [onlineFbUser]);
 
   useEffect(() => {
     if (!selectedStart) return;
@@ -3885,8 +3909,8 @@ const [lastLocalEditAt, setLastLocalEditAt] = useState(0);
   /* --------------------------- FIREBASE STATE --------------------------- */
   const [fbReady, setFbReady] = useState(false);
   const [fbUser, setFbUser] = useState(null);
-  const [cloudEnabled, setCloudEnabled] = useState(true);
-  const [realtimeOrders, setRealtimeOrders] = useState(true);
+  const [cloudEnabled, setCloudEnabled] = useState(!DEMO_MODE);
+  const [realtimeOrders, setRealtimeOrders] = useState(!DEMO_MODE);
   const [cloudStatus, setCloudStatus] = useState({
     lastSaveAt: null,
     lastLoadAt: null,
@@ -3910,6 +3934,11 @@ const writeSeqRef = useRef(0);
   setReconCounts((prev) => ({ ...init, ...prev }));
 }, [dayMeta.startedAt, paymentMethods]);
   useEffect(() => {
+    if (DEMO_MODE) {
+      setFbReady(false);
+      setFbUser(null);
+      return undefined;
+    }
     try {
       const { auth } = ensureFirebase();
       setFbReady(true);
@@ -4081,8 +4110,8 @@ if (Array.isArray(l.deliveryZones)) setDeliveryZones(l.deliveryZones);
   if (l.inventoryLockedAt) setInventoryLockedAt(new Date(l.inventoryLockedAt));
   if (typeof l.autoPrintOnCheckout === "boolean") setAutoPrintOnCheckout(l.autoPrintOnCheckout);
   if (typeof l.preferredPaperWidthMm === "number") setPreferredPaperWidthMm(l.preferredPaperWidthMm);
-  if (typeof l.cloudEnabled === "boolean") setCloudEnabled(l.cloudEnabled);
-  if (typeof l.realtimeOrders === "boolean") setRealtimeOrders(l.realtimeOrders);
+  if (typeof l.cloudEnabled === "boolean") setCloudEnabled(DEMO_MODE ? false : l.cloudEnabled);
+  if (typeof l.realtimeOrders === "boolean") setRealtimeOrders(DEMO_MODE ? false : l.realtimeOrders);
 if (typeof l.nextOrderNo === "number") setNextOrderNo(l.nextOrderNo);
   if (Array.isArray(l.orders)) {
     setOrders(
@@ -4412,6 +4441,10 @@ if (ts && lastLocalEditAt && ts < lastLocalEditAt) return;
 }, [cloudEnabled, stateDocRef, fbUser, dayMeta, lastAppliedCloudAt, lastLocalEditAt]);
   // Manual pull
   const loadFromCloud = async () => {
+    if (DEMO_MODE) {
+      alert("Demo mode: cloud sync is disabled.");
+      return;
+    }
     if (!stateDocRef || !fbUser) return alert("Firebase not ready.");
     try {
       const snap = await getDoc(stateDocRef);
@@ -4463,6 +4496,10 @@ if (unpacked.workerSessions) setWorkerSessions(unpacked.workerSessions);
     }
   };
  const saveToCloudNow = async () => {
+  if (DEMO_MODE) {
+    alert("Demo mode: cloud sync is disabled.");
+    return;
+  }
   if (!stateDocRef || !fbUser) return alert("Firebase not ready.");
   try {
     const bodyBase = packStateForCloud({
@@ -7996,7 +8033,7 @@ const generatePurchasesPDF = () => {
     flexWrap: "wrap",
   }}
 >
-  <h1 style={{ margin: 0 }}>🍔 TUX — Burger Truck POS</h1>
+  <h1 style={{ margin: 0 }}>🍔 TUX — Burger Truck POS (Demo)</h1>
 
   {/* Right side: date/time + theme toggle */}
   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -8047,6 +8084,10 @@ const generatePurchasesPDF = () => {
 
     <button
       onClick={() => {
+        if (DEMO_MODE) {
+          alert("Demo mode: online orders are disabled.");
+          return;
+        }
         handleTabClick("board");
         setOrderBoardFilter("online");
       }}
@@ -8055,6 +8096,7 @@ const generatePurchasesPDF = () => {
           ? `${newOnlineOrderCount} new online order${newOnlineOrderCount === 1 ? "" : "s"}`
           : "No new online orders"
       }
+      disabled={DEMO_MODE}
       style={{
         position: "relative",
         padding: "6px 10px",
@@ -8066,8 +8108,9 @@ const generatePurchasesPDF = () => {
           ? "#2c2c2c"
           : "#f1f1f1",
         color: newOnlineOrderCount ? (dark ? "#bbdefb" : "#0d47a1") : dark ? "#fff" : "#000",
-        cursor: "pointer",
+        cursor: DEMO_MODE ? "not-allowed" : "pointer",
         fontWeight: 700,
+        opacity: DEMO_MODE ? 0.6 : 1,
       }}
     >
       🌐 Online Orders
@@ -8113,6 +8156,22 @@ const generatePurchasesPDF = () => {
     </button>
   </div>
 </div>
+
+{DEMO_MODE && (
+  <div
+    style={{
+      padding: 12,
+      borderRadius: 10,
+      marginBottom: 12,
+      border: `1px solid ${cardBorder}`,
+      background: dark ? "#1f1f1f" : "#fff8e1",
+      color: dark ? "#f5f5f5" : "#4e342e",
+    }}
+  >
+    <strong>LinkedIn Demo Mode</strong> — This is a safe, read-only showcase. All data is sample only and
+    stays in your browser. Cloud sync, online orders, and external services are disabled.
+  </div>
+)}
 
 
 
@@ -14288,6 +14347,7 @@ setExtraList((arr) => [
                 <input
                   type="checkbox"
                   checked={cloudEnabled}
+                  disabled={DEMO_MODE}
                   onChange={(e) => setCloudEnabled(e.target.checked)}
                 />
                 Enable cloud autosave (state)
@@ -14296,17 +14356,29 @@ setExtraList((arr) => [
                 <input
                   type="checkbox"
                   checked={realtimeOrders}
+                  disabled={DEMO_MODE}
                   onChange={(e) => setRealtimeOrders(e.target.checked)}
                 />
                 Live Orders Board (realtime)
               </label>
              <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-  <button onClick={saveToCloudNow} style={{ background: "#2e7d32", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px" }}>
+  <button
+    onClick={saveToCloudNow}
+    disabled={DEMO_MODE}
+    style={{ background: "#2e7d32", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", opacity: DEMO_MODE ? 0.6 : 1, cursor: DEMO_MODE ? "not-allowed" : "pointer" }}
+  >
     Sync to Cloud
   </button>
-  <button onClick={loadFromCloud} style={{ background: "#1976d2", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px" }}>
+  <button
+    onClick={loadFromCloud}
+    disabled={DEMO_MODE}
+    style={{ background: "#1976d2", color: "#fff", border: "none", borderRadius: 6, padding: "6px 10px", opacity: DEMO_MODE ? 0.6 : 1, cursor: DEMO_MODE ? "not-allowed" : "pointer" }}
+  >
     Load from Cloud
   </button>
+  {DEMO_MODE && (
+    <small style={{ opacity: 0.8 }}>Demo mode: cloud features are turned off.</small>
+  )}
   <small style={{ opacity: 0.8 }}>
     Last save: {cloudStatus.lastSaveAt ? cloudStatus.lastSaveAt.toLocaleString() : "—"} • Last load: {cloudStatus.lastLoadAt ? cloudStatus.lastLoadAt.toLocaleString() : "—"}
   </small>
