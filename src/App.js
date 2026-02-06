@@ -105,6 +105,27 @@ function parseNumericAmount(value) {
   return null;
 }
 
+function calculateCartSubtotal(cart = []) {
+  return (cart || []).reduce((sum, line) => {
+    const extras = (line.extras || []).reduce(
+      (tally, extra) => tally + Number(extra.price || 0),
+      0
+    );
+    return sum + (Number(line.price || 0) + extras) * Number(line.qty || 1);
+  }, 0);
+}
+
+function calculateDiscountAmount(subtotal, type, value) {
+  const safeSubtotal = Math.max(0, Number(subtotal || 0));
+  const numericValue = Math.max(0, Number(value || 0));
+  if (!safeSubtotal || !numericValue) return 0;
+  if (type === "percent") {
+    const cappedPct = Math.min(100, numericValue);
+    return Number(((safeSubtotal * cappedPct) / 100).toFixed(2));
+  }
+  return Math.min(safeSubtotal, Number(numericValue.toFixed(2)));
+}
+
 function addPaymentPart(parts, method, amount, options = {}) {
   const { explicit = false } = options || {};
   const label = normalizePaymentMethodName(method);
@@ -1043,6 +1064,7 @@ ONLINE_ORDER_COLLECTIONS.forEach((def) => {
           </div>
         </div>
       )}
+
     </div>
   );
 }
@@ -2435,6 +2457,174 @@ const DEFAULT_ZONES = [
   { id: "zone-b", name: "Zone B (Medium)", fee: 30 },
   { id: "zone-c", name: "Zone C (Far)", fee: 40 },
 ];
+const DEMO_ROLES = ["Cashier", "Manager", "Admin"];
+const DEMO_FEATURE_HIGHLIGHTS = [
+  "Inventory tracking",
+  "Discounts & split payments",
+  "Analytics dashboard",
+  "Auto receipts",
+];
+const DEMO_TOUR_STEPS = [
+  {
+    title: "Add an item",
+    description: "Tap a burger and extras, set quantity, then add to cart.",
+  },
+  {
+    title: "Apply a discount",
+    description: "Use the discount controls to apply % or fixed E£ off.",
+  },
+  {
+    title: "Complete a sale",
+    description: "Choose worker, payment method, and checkout to log a sale.",
+  },
+  {
+    title: "Preview the receipt",
+    description: "Open the receipt preview from recent sales or after checkout.",
+  },
+];
+const DEMO_CUSTOMERS = [
+  {
+    id: "demo-customer-1",
+    name: "Mona Khalil",
+    phone: "01012345678",
+    address: "El-Saada St – Zahraa El-Maadi",
+    zoneId: "zone-a",
+  },
+  {
+    id: "demo-customer-2",
+    name: "Youssef Adel",
+    phone: "01098765432",
+    address: "Street 9 – Maadi",
+    zoneId: "zone-b",
+  },
+  {
+    id: "demo-customer-3",
+    name: "Noura Samir",
+    phone: "01122334455",
+    address: "Ring Rd – New Cairo",
+    zoneId: "zone-c",
+  },
+];
+const DEMO_INVENTORY = [
+  { id: "beef", name: "Ground Beef", unit: "g", qty: 12000, costPerUnit: 0.24, minQty: 3000 },
+  { id: "buns", name: "Burger Buns", unit: "piece", qty: 180, costPerUnit: 2.2, minQty: 40 },
+  { id: "cheese", name: "Cheddar Cheese", unit: "slice", qty: 220, costPerUnit: 1.6, minQty: 60 },
+  { id: "lettuce", name: "Lettuce", unit: "g", qty: 2500, costPerUnit: 0.08, minQty: 800 },
+  { id: "tomato", name: "Tomato", unit: "g", qty: 3000, costPerUnit: 0.06, minQty: 900 },
+  { id: "fries", name: "Fries Potatoes", unit: "g", qty: 9000, costPerUnit: 0.05, minQty: 2000 },
+  { id: "soda", name: "Soda Bottles", unit: "piece", qty: 120, costPerUnit: 4.5, minQty: 30 },
+];
+
+function buildDemoOrders() {
+  const menuById = new Map(BASE_MENU.map((item) => [item.id, item]));
+  const extraById = new Map(BASE_EXTRAS.map((extra) => [extra.id, extra]));
+  const makeLine = (id, qty, extras = []) => {
+    const item = menuById.get(id) || {};
+    return {
+      id: item.id || id,
+      name: item.name || `Item ${id}`,
+      price: Number(item.price || 0),
+      qty,
+      extras: extras.map((extraId) => {
+        const ex = extraById.get(extraId) || {};
+        return {
+          id: ex.id || extraId,
+          name: ex.name || `Extra ${extraId}`,
+          price: Number(ex.price || 0),
+        };
+      }),
+    };
+  };
+  const now = Date.now();
+  const seeds = [
+    {
+      orderNo: 1401,
+      minutesAgo: 18,
+      worker: "Hassan",
+      payment: "Cash",
+      orderType: "Take-Away",
+      cart: [makeLine(1, 1, [103]), makeLine(5, 2)],
+      note: "No pickles",
+    },
+    {
+      orderNo: 1402,
+      minutesAgo: 42,
+      worker: "Andiel",
+      payment: "Card",
+      orderType: "Dine-in",
+      cart: [makeLine(2, 1, [101, 104]), makeLine(12, 2)],
+      discountType: "percent",
+      discountValue: 10,
+    },
+    {
+      orderNo: 1403,
+      minutesAgo: 75,
+      worker: "Warda",
+      payment: "Instapay",
+      orderType: "Delivery",
+      cart: [makeLine(3, 1, [102]), makeLine(6, 1), makeLine(13, 2)],
+      deliveryFee: 30,
+      deliveryName: "Mona Khalil",
+      deliveryPhone: "01012345678",
+      deliveryAddress: "El-Saada St – Zahraa El-Maadi",
+      deliveryZoneId: "zone-a",
+    },
+    {
+      orderNo: 1404,
+      minutesAgo: 110,
+      worker: "Ahmed",
+      payment: "Cash",
+      orderType: "Take-Away",
+      cart: [makeLine(8, 1, [105]), makeLine(12, 1)],
+    },
+    {
+      orderNo: 1405,
+      minutesAgo: 160,
+      worker: "Hazem",
+      payment: "Card",
+      orderType: "Delivery",
+      cart: [makeLine(4, 1, [101, 103]), makeLine(9, 1)],
+      deliveryFee: 40,
+      deliveryName: "Noura Samir",
+      deliveryPhone: "01122334455",
+      deliveryAddress: "Ring Rd – New Cairo",
+      deliveryZoneId: "zone-c",
+    },
+  ];
+
+  return seeds.map((seed) => {
+    const itemsTotal = calculateCartSubtotal(seed.cart);
+    const discountAmount = calculateDiscountAmount(
+      itemsTotal,
+      seed.discountType,
+      seed.discountValue
+    );
+    const deliveryFee = Number(seed.deliveryFee || 0);
+    const total = Math.max(0, itemsTotal - discountAmount) + deliveryFee;
+    return {
+      orderNo: seed.orderNo,
+      date: new Date(now - seed.minutesAgo * 60 * 1000),
+      worker: seed.worker,
+      payment: seed.payment,
+      paymentParts: [{ method: seed.payment, amount: total }],
+      orderType: seed.orderType,
+      deliveryFee,
+      deliveryName: seed.deliveryName || "",
+      deliveryPhone: seed.deliveryPhone || "",
+      deliveryAddress: seed.deliveryAddress || "",
+      deliveryZoneId: seed.deliveryZoneId || "",
+      notifyViaWhatsapp: false,
+      cart: seed.cart,
+      itemsTotal,
+      discountType: seed.discountType || "amount",
+      discountValue: seed.discountValue || 0,
+      discountAmount,
+      total: Number(total.toFixed(2)),
+      note: seed.note || "",
+      done: true,
+    };
+  });
+}
 function normalizePurchaseCategories(arr = []) {
   return (arr || []).map((c, i) => {
     if (typeof c === "string") {
@@ -2741,13 +2931,23 @@ function buildReceiptHTML(order, widthMm = 80) {
           return sum + (base + extrasSum) * q;
         }, 0);
 
+  const discountAmount = Number(order.discountAmount || 0);
+  const discountLabel =
+    order.discountType === "percent"
+      ? `${Number(order.discountValue || 0).toFixed(0)}%`
+      : order.discountValue
+      ? `E£${Number(order.discountValue || 0).toFixed(2)}`
+      : "";
+
   const deliveryFee =
     order.orderType === "Delivery"
       ? Math.max(0, Number(order.deliveryFee || 0))
       : 0;
 
   const grandTotal =
-    order.total != null ? Number(order.total || 0) : itemsSubtotal + deliveryFee;
+    order.total != null
+      ? Number(order.total || 0)
+      : Math.max(0, itemsSubtotal - discountAmount) + deliveryFee;
   const paymentBreakdownHtml =
   Array.isArray(order.paymentParts) && order.paymentParts.length
     ? order.paymentParts
@@ -2906,6 +3106,11 @@ const cashBlock = (() => {
     <div class="sep"></div>
     <div class="totals">
   <div class="row"><div>Items Subtotal</div><div>${currency(itemsSubtotal)}</div></div>
+  ${
+    discountAmount > 0
+      ? `<div class="row"><div>Discount ${discountLabel ? `(${escHtml(discountLabel)})` : ""}</div><div>- ${currency(discountAmount)}</div></div>`
+      : ``
+  }
   ${deliveryFee > 0 ? `<div class="row"><div>Delivery Fee</div><div>${currency(deliveryFee)}</div></div>` : ``}
   <div class="row total"><div>TOTAL</div><div>${currency(grandTotal)}</div></div>
   ${paymentBreakdownHtml ? `<div class="row"><div style="font-weight:700">Paid by</div><div></div></div>` : ``}
@@ -3218,6 +3423,19 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("orders");
 const [adminSubTab, setAdminSubTab] = useState("inventory"); 
   const [dark, setDark] = useState(false);
+  const [demoMode, setDemoMode] = useState(() => {
+    const l = loadLocal();
+    return typeof l.demoMode === "boolean" ? l.demoMode : true;
+  });
+  const [demoRole, setDemoRole] = useState(() => {
+    const l = loadLocal();
+    return DEMO_ROLES.includes(l.demoRole) ? l.demoRole : "Cashier";
+  });
+  const [demoSeeded, setDemoSeeded] = useState(() => Boolean(loadLocal().demoSeeded));
+  const [isTourOpen, setIsTourOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [receiptPreviewOrder, setReceiptPreviewOrder] = useState(null);
+  const [barcodeValue, setBarcodeValue] = useState("");
   const [workers, setWorkers] = useState(BASE_WORKERS);
   
 const [newWorker, setNewWorker] = useState("");
@@ -3764,6 +3982,9 @@ const [amtB, setAmtB] = useState(0);
 const [cashReceivedSplit, setCashReceivedSplit] = useState(0);
 const [newOrderType, setNewOrderType] = useState("");
 const [orderNote, setOrderNote] = useState("");
+const [discountType, setDiscountType] = useState("percent");
+const [discountValue, setDiscountValue] = useState(0);
+const [discountNote, setDiscountNote] = useState("");
 const [orderType, setOrderType] = useState(orderTypes[0] || "Take-Away");
 const [deliveryFee, setDeliveryFee] = useState(0);
 const [deliveryName, setDeliveryName] = useState("");
@@ -3795,6 +4016,59 @@ const removeZone = (id) => {
   // if the current order had this zone selected, clear it
   setDeliveryZoneId((prev) => (prev === id ? "" : prev));
 };
+
+const applyDemoData = useCallback(() => {
+  const demoOrders = buildDemoOrders();
+  const maxOrderNo = demoOrders.reduce(
+    (max, order) => Math.max(max, Number(order.orderNo || 0)),
+    0
+  );
+  const now = new Date();
+  const demoDayMeta = {
+    startedBy: "Demo",
+    currentWorker: demoOrders[0]?.worker || "",
+    startedAt: now,
+    endedAt: null,
+    endedBy: "",
+    lastReportAt: null,
+    resetBy: "",
+    resetAt: null,
+    shiftChanges: [],
+  };
+  setMenu(BASE_MENU);
+  setExtraList(BASE_EXTRAS);
+  setInventory(DEMO_INVENTORY);
+  setCustomers(DEMO_CUSTOMERS);
+  setDeliveryZones(DEFAULT_ZONES);
+  setOrders([]);
+  setHistoricalOrders(demoOrders);
+  setHistoricalExpenses([]);
+  setHistoricalPurchases([]);
+  setExpenses([]);
+  setPurchases([]);
+  setDayMeta(demoDayMeta);
+  setNextOrderNo(maxOrderNo + 1);
+  setWorker(demoOrders[0]?.worker || "");
+  setPayment("Cash");
+  setOrderType(DEFAULT_ORDER_TYPES[0] || "Take-Away");
+  setCart([]);
+  setOrderNote("");
+  setDiscountType("percent");
+  setDiscountValue(0);
+  setDiscountNote("");
+  setDemoMode(true);
+  setDemoSeeded(true);
+  saveLocalPartial({
+    demoMode: true,
+    demoSeeded: true,
+    historicalOrders: demoOrders.map((order) => ({
+      ...order,
+      date: toIso(order.date),
+    })),
+    historicalExpenses: [],
+    historicalPurchases: [],
+  });
+}, []);
 
 const [newCategoryName, setNewCategoryName] = useState("");
 const [cashReceived, setCashReceived] = useState(0);
@@ -3900,6 +4174,122 @@ const writeSeqRef = useRef(0);
   // Printing preferences (kept)
   const [autoPrintOnCheckout, setAutoPrintOnCheckout] = useState(true);
   const [preferredPaperWidthMm, setPreferredPaperWidthMm] = useState(80);
+  const allowedTabsByRole = {
+    Cashier: ["orders", "board"],
+    Manager: ["orders", "board", "expenses", "usage", "reconcile"],
+    Admin: ["orders", "board", "expenses", "usage", "reconcile", "admin"],
+  };
+  const allowedTabs = allowedTabsByRole[demoRole] || allowedTabsByRole.Cashier;
+  const tabDescriptions = {
+    orders: "Build orders, apply discounts, and run demo checkout flows.",
+    board: "Monitor on-site and online orders in a live kitchen view.",
+    expenses: "Log daily expenses, utilities, and profit impacts.",
+    usage: "Track inventory usage, low stock, and reorder guidance.",
+    reconcile: "Balance cash drawer totals and close the shift.",
+    admin: "Configure inventory, reports, users, and system settings.",
+  };
+  const adminTabDescriptions = {
+    inventory: "Manage stock levels, costs, and reorder thresholds.",
+    purchases: "Record supplier purchases and stock replenishment.",
+    cogs: "Review margin targets, COGS details, and pricing guidance.",
+    bank: "Track deposits, withdrawals, and cash flow adjustments.",
+    workerlog: "Monitor worker sessions, attendance, and payout totals.",
+    contacts: "Review customer contacts, spend history, and VIPs.",
+    reports: "View revenue, payment splits, and performance summaries.",
+    edit: "Bulk edit menu items, extras, and demo data.",
+    settings: "Configure printers, admin pins, and integrations.",
+  };
+  const cartSubtotal = useMemo(() => calculateCartSubtotal(cart), [cart]);
+  const discountAmount = useMemo(
+    () => calculateDiscountAmount(cartSubtotal, discountType, discountValue),
+    [cartSubtotal, discountType, discountValue]
+  );
+  const discountedSubtotal = Math.max(0, cartSubtotal - discountAmount);
+  const orderTotal =
+    discountedSubtotal + (orderType === "Delivery" ? Number(deliveryFee || 0) : 0);
+  const recentSales = useMemo(() => {
+    const combined = [...(orders || []), ...(historicalOrders || [])].filter((o) => !o?.voided);
+    return combined
+      .map(enrichOrderWithChannel)
+      .sort((a, b) => toMillis(b.date) - toMillis(a.date))
+      .slice(0, 6);
+  }, [orders, historicalOrders]);
+  const demoSalesToday = useMemo(() => {
+    const todayStart = startOfDay(new Date());
+    const todayEnd = endOfDay(new Date());
+    const allOrders = [...(orders || []), ...(historicalOrders || [])].filter((o) => !o?.voided);
+    const todayOrders = allOrders.filter((order) => {
+      const when = order?.date instanceof Date ? order.date : new Date(order?.date);
+      return when >= todayStart && when <= todayEnd;
+    });
+    const totalSales = todayOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    return { totalSales, todayOrders };
+  }, [orders, historicalOrders]);
+  const demoTopItems = useMemo(() => {
+    const counts = new Map();
+    for (const order of demoSalesToday.todayOrders) {
+      for (const line of order.cart || []) {
+        const key = line.name || "Item";
+        const prev = counts.get(key) || 0;
+        counts.set(key, prev + Number(line.qty || 1));
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([name, qty]) => ({ name, qty }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 3);
+  }, [demoSalesToday]);
+  const demoHourlySales = useMemo(() => {
+    const buckets = Array.from({ length: 12 }, (_, i) => ({
+      hour: 9 + i,
+      count: 0,
+    }));
+    for (const order of demoSalesToday.todayOrders) {
+      const when = order?.date instanceof Date ? order.date : new Date(order?.date);
+      const hour = when.getHours();
+      const bucket = buckets.find((b) => b.hour === hour);
+      if (bucket) bucket.count += 1;
+    }
+    return buckets;
+  }, [demoSalesToday]);
+  const demoBarcodeMap = useMemo(() => {
+    const byName = new Map((menu || []).map((item) => [item.name, item]));
+    return new Map([
+      ["TUX-1001", byName.get("Single Smashed Patty") || menu?.[0]],
+      ["TUX-2002", byName.get("Classic Fries") || menu?.[4]],
+      ["TUX-3003", byName.get("Soda") || menu?.[11]],
+    ]);
+  }, [menu]);
+  const handleDemoScan = () => {
+    const trimmed = String(barcodeValue || "").trim().toUpperCase();
+    if (!trimmed) return;
+    const match = demoBarcodeMap.get(trimmed);
+    if (!match) {
+      alert("Demo barcode not recognized. Try TUX-1001, TUX-2002, or TUX-3003.");
+      return;
+    }
+    setSelectedBurger(match);
+    setSelectedExtras([]);
+    setSelectedQty(1);
+    setCart((prev) => [...prev, { ...match, qty: 1, extras: [] }]);
+    setBarcodeValue("");
+  };
+  const addSampleItemToCart = () => {
+    const sample = menu[0];
+    if (!sample) return;
+    setCart((prev) => [...prev, { ...sample, qty: 1, extras: [] }]);
+  };
+  const openReceiptPreview = (order) => {
+    if (!order) return;
+    setReceiptPreviewOrder(order);
+  };
+  const receiptPreviewHtml = useMemo(() => {
+    if (!receiptPreviewOrder) return "";
+    return buildReceiptHTML(
+      receiptPreviewOrder,
+      Number(preferredPaperWidthMm) || 80
+    );
+  }, [receiptPreviewOrder, preferredPaperWidthMm]);
   useEffect(() => {
   if (!dayMeta.startedAt) {
     setReconCounts({}); setReconSavedBy("");
@@ -4097,6 +4487,26 @@ if (typeof l.nextOrderNo === "number") setNextOrderNo(l.nextOrderNo);
   }
   setLocalHydrated(true);
 }, [localHydrated]);
+useEffect(() => {
+  saveLocalPartial({ demoMode, demoRole, demoSeeded });
+}, [demoMode, demoRole, demoSeeded]);
+useEffect(() => {
+  if (!demoMode) return;
+  if (typeof sessionStorage === "undefined") return;
+  const key = "tux_demo_session_active";
+  if (!sessionStorage.getItem(key)) {
+    applyDemoData();
+    sessionStorage.setItem(key, "true");
+  }
+}, [demoMode, applyDemoData]);
+useEffect(() => {
+  if (demoRole === "Admin") {
+    setAdminUnlocked(true);
+    return;
+  }
+  setAdminUnlocked(false);
+  if (activeTab === "admin") setActiveTab("orders");
+}, [demoRole, activeTab]);
 useEffect(() => { saveLocalPartial({ menu }); }, [menu]);
   useEffect(() => {
 saveLocalPartial({
@@ -6059,13 +6469,19 @@ const checkout = async () => {
       })
     );
 
-    const itemsTotal = cartWithUses.reduce((s, b) => {
+    const itemsSubtotal = cartWithUses.reduce((s, b) => {
       const ex = (b.extras || []).reduce((t, e) => t + Number(e.price || 0), 0);
       return s + (Number(b.price || 0) + ex) * Number(b.qty || 1);
     }, 0);
+    const discountAmount = calculateDiscountAmount(
+      itemsSubtotal,
+      discountType,
+      discountValue
+    );
+    const discountedSubtotal = Math.max(0, itemsSubtotal - discountAmount);
     const delFee =
       orderType === "Delivery" ? Math.max(0, Number(deliveryFee || 0)) : 0;
-    const total = itemsTotal + delFee;
+    const total = discountedSubtotal + delFee;
     let paymentLabel = payment;
     let paymentParts = [];
     if (splitPay) {
@@ -6120,7 +6536,11 @@ const checkout = async () => {
       notifyViaWhatsapp: shouldWhatsapp,
       whatsappSentAt: null,
       total,
-      itemsTotal,
+      itemsTotal: itemsSubtotal,
+      discountType,
+      discountValue,
+      discountAmount,
+      discountNote,
       cashReceived: cashVal,
       changeDue,
       cart: cartWithUses,
@@ -6170,6 +6590,9 @@ const checkout = async () => {
     setWorker("");
     setPayment("");
     setOrderNote("");
+    setDiscountType("percent");
+    setDiscountValue(0);
+    setDiscountNote("");
     const defaultType = orderTypes[0] || "Take-Away";
     setOrderType(defaultType);
     setDeliveryFee(defaultType === "Delivery" ? defaultDeliveryFee : 0);
@@ -7847,6 +8270,10 @@ const endedStr   = m.endedAt   ? fmtDateTime(m.endedAt)   : "—";
   };
 
 const handleTabClick = (key) => {
+  if (!allowedTabs.includes(key)) {
+    alert(`"${demoRole}" role does not have access to this tab.`);
+    return;
+  }
   if (key === "admin") {
     if (!adminUnlocked) {
       const ok = !!promptAdminAndPin(); // uses your existing Admin PINs (1..6)
@@ -8203,7 +8630,142 @@ const generatePurchasesPDF = () => {
       </button>
     </>
   )}
-</div>
+  </div>
+
+  {demoMode && (
+    <div
+      style={{
+        border: `1px solid ${cardBorder}`,
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 12,
+        background: dark ? "#1e1e1e" : "#fffbe6",
+      }}
+    >
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <strong style={{ fontSize: 16 }}>Demo Mode — Reset Available</strong>
+        <span style={{ opacity: 0.7 }}>
+          Local-only demo backend. Reset on new session for clean walkthroughs.
+        </span>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button
+            onClick={applyDemoData}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: `1px solid ${btnBorder}`,
+              background: "#fff59d",
+              cursor: "pointer",
+            }}
+          >
+            Reset Demo Data
+          </button>
+          <button
+            onClick={() => {
+              applyDemoData();
+              setIsTourOpen(true);
+              setTourStep(0);
+            }}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: `1px solid ${btnBorder}`,
+              background: dark ? "#2c2c2c" : "#f1f1f1",
+              cursor: "pointer",
+            }}
+          >
+            Start Guided Tour
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 12,
+          marginTop: 12,
+        }}
+      >
+        <div
+          style={{
+            borderRadius: 10,
+            border: `1px solid ${cardBorder}`,
+            padding: 10,
+            background: dark ? "#151515" : "#fff",
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Demo accounts</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {DEMO_ROLES.map((role) => (
+              <button
+                key={role}
+                onClick={() => setDemoRole(role)}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: `1px solid ${btnBorder}`,
+                  background: demoRole === role ? "#c8e6c9" : dark ? "#2c2c2c" : "#f1f1f1",
+                  cursor: "pointer",
+                }}
+              >
+                {role}
+              </button>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+            Cashier: Orders + Board · Manager: + Expenses/Usage · Admin: Full access
+          </div>
+        </div>
+
+        <div
+          style={{
+            borderRadius: 10,
+            border: `1px solid ${cardBorder}`,
+            padding: 10,
+            background: dark ? "#151515" : "#fff",
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Feature highlights</div>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {DEMO_FEATURE_HIGHLIGHTS.map((item) => (
+              <li key={item} style={{ marginBottom: 4 }}>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div
+          style={{
+            borderRadius: 10,
+            border: `1px solid ${cardBorder}`,
+            padding: 10,
+            background: dark ? "#151515" : "#fff",
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Book a demo</div>
+          <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 8 }}>
+            Want a real walkthrough? Schedule a live session with our team.
+          </div>
+          <a
+            href="mailto:demo@tuxcashier.com?subject=Book%20a%20TUX%20Demo"
+            style={{
+              display: "inline-block",
+              padding: "6px 10px",
+              borderRadius: 6,
+              border: "1px solid #1976d2",
+              color: "#1976d2",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Book a demo
+          </a>
+        </div>
+      </div>
+    </div>
+  )}
 
 {/* Low-stock slide-down panel */}
 {showLowStock && (
@@ -8293,7 +8855,9 @@ const generatePurchasesPDF = () => {
     ["usage", "Inventory Usage"],
      ["reconcile","Reconcile"],
     ["admin", "Admin"], // <-- new consolidated tab
-  ].map(([key, label]) => (
+  ]
+    .filter(([key]) => allowedTabs.includes(key))
+    .map(([key, label]) => (
     <button
       key={key}
       onClick={() => handleTabClick(key)}
@@ -8350,6 +8914,26 @@ const generatePurchasesPDF = () => {
     </div>
   </div>
 )}
+<div
+  style={{
+    border: `1px solid ${cardBorder}`,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    background: dark ? "#1b1b1b" : "#fafafa",
+  }}
+>
+  <div style={{ fontWeight: 700, marginBottom: 4 }}>Tab overview</div>
+  <div style={{ opacity: 0.8 }}>
+    {tabDescriptions[activeTab] || "Overview coming soon."}
+    {activeTab === "admin" && (
+      <span>
+        {" "}
+        • {adminTabDescriptions[adminSubTab] || "Pick a subtab to see details."}
+      </span>
+    )}
+  </div>
+</div>
 {/* ───────────────────────────────── COGS TAB ───────────────────────────────── */}
 {activeTab === "admin" && adminSubTab === "cogs" && (
   <div style={{ display: "grid", gap: 14 }}>
@@ -9273,6 +9857,234 @@ const cogs = Number(
       {/* ORDERS */}
       {activeTab === "orders" && (
         <div>
+          {demoMode && (
+            <div style={{ display: "grid", gap: 16, marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    padding: 12,
+                    borderRadius: 10,
+                    border: `1px solid ${cardBorder}`,
+                    background: dark ? "#1f1f1f" : "#fff",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, opacity: 0.75 }}>Total sales today</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6 }}>
+                    E£{demoSalesToday.totalSales.toFixed(2)}
+                  </div>
+                  <div style={{ opacity: 0.7 }}>
+                    {demoSalesToday.todayOrders.length} transaction(s)
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: 12,
+                    borderRadius: 10,
+                    border: `1px solid ${cardBorder}`,
+                    background: dark ? "#1f1f1f" : "#fff",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, opacity: 0.75 }}>Top-selling items</div>
+                  {demoTopItems.length ? (
+                    <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+                      {demoTopItems.map((item) => (
+                        <li key={item.name}>
+                          {item.name} · {item.qty} sold
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div style={{ opacity: 0.7, marginTop: 8 }}>No sales yet.</div>
+                  )}
+                </div>
+                <div
+                  style={{
+                    padding: 12,
+                    borderRadius: 10,
+                    border: `1px solid ${cardBorder}`,
+                    background: dark ? "#1f1f1f" : "#fff",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, opacity: 0.75 }}>Try it checklist</div>
+                  <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input type="checkbox" readOnly checked={cart.length > 0} />
+                      Add an item
+                    </label>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input type="checkbox" readOnly checked={discountAmount > 0} />
+                      Apply a discount
+                    </label>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input type="checkbox" readOnly checked={recentSales.length > 0} />
+                      Complete a sale
+                    </label>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input type="checkbox" readOnly checked={!!receiptPreviewOrder} />
+                      Preview receipt
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    padding: 12,
+                    borderRadius: 10,
+                    border: `1px solid ${cardBorder}`,
+                    background: dark ? "#1f1f1f" : "#fff",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Transactions per hour</div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    {demoHourlySales.map((bucket) => (
+                      <div key={bucket.hour} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 40, fontSize: 12, opacity: 0.7 }}>
+                          {String(bucket.hour).padStart(2, "0")}:00
+                        </div>
+                        <div style={{ flex: 1, height: 8, background: dark ? "#333" : "#eee", borderRadius: 4 }}>
+                          <div
+                            style={{
+                              width: `${Math.min(100, bucket.count * 20)}%`,
+                              height: "100%",
+                              borderRadius: 4,
+                              background: "#64b5f6",
+                            }}
+                          />
+                        </div>
+                        <div style={{ width: 24, textAlign: "right" }}>{bucket.count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: 12,
+                    borderRadius: 10,
+                    border: `1px solid ${cardBorder}`,
+                    background: dark ? "#1f1f1f" : "#fff",
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>Recent sales</div>
+                  {recentSales.length ? (
+                    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                      {recentSales.map((sale) => (
+                        <li
+                          key={`sale-${sale.orderNo}`}
+                          style={{
+                            padding: "8px 0",
+                            borderBottom: `1px dashed ${cardBorder}`,
+                            display: "grid",
+                            gap: 4,
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                            <strong>#{sale.orderNo}</strong>
+                            <span>{fmtDateTime(sale.date)}</span>
+                          </div>
+                          <div style={{ opacity: 0.75 }}>
+                            Cashier: {sale.worker || "—"} • Total: E£{Number(sale.total || 0).toFixed(2)}
+                          </div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <button
+                              onClick={() => openReceiptPreview(sale)}
+                              style={{
+                                padding: "4px 8px",
+                                borderRadius: 6,
+                                border: `1px solid ${btnBorder}`,
+                                background: "#fff59d",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Preview receipt
+                            </button>
+                            <button
+                              onClick={() =>
+                                printReceiptHTML(sale, Number(preferredPaperWidthMm) || 80, "Customer")
+                              }
+                              style={{
+                                padding: "4px 8px",
+                                borderRadius: 6,
+                                border: `1px solid ${btnBorder}`,
+                                background: dark ? "#2c2c2c" : "#f1f1f1",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Print (demo)
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div style={{ opacity: 0.7 }}>No recent sales yet.</div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: 12,
+                  borderRadius: 10,
+                  border: `1px solid ${cardBorder}`,
+                  background: dark ? "#1f1f1f" : "#fff",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 12,
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>Demo barcode scan</div>
+                <input
+                  type="text"
+                  placeholder="Enter barcode (e.g., TUX-1001)"
+                  value={barcodeValue}
+                  onChange={(e) => setBarcodeValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleDemoScan();
+                  }}
+                  style={{
+                    flex: "1 1 220px",
+                    minWidth: 200,
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    border: `1px solid ${btnBorder}`,
+                  }}
+                />
+                <button
+                  onClick={handleDemoScan}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: `1px solid ${btnBorder}`,
+                    background: "#42a5f5",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  Scan demo barcode
+                </button>
+                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                  Try: TUX-1001 · TUX-2002 · TUX-3003
+                </span>
+              </div>
+            </div>
+          )}
+
           <h2>Select item</h2>
 
           <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -9387,7 +10199,37 @@ const cogs = Number(
 
           {/* Cart */}
           <h3 style={{ marginTop: 16 }}>Cart</h3>
-          {cart.length === 0 && <p>No items yet.</p>}
+          {cart.length === 0 && (
+            <div style={{ padding: 12, borderRadius: 8, border: `1px dashed ${btnBorder}` }}>
+              <div style={{ fontWeight: 600 }}>No items yet — try loading demo data.</div>
+              <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={applyDemoData}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: `1px solid ${btnBorder}`,
+                    background: "#fff59d",
+                    cursor: "pointer",
+                  }}
+                >
+                  Load Demo Data
+                </button>
+                <button
+                  onClick={addSampleItemToCart}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: `1px solid ${btnBorder}`,
+                    background: dark ? "#2c2c2c" : "#f1f1f1",
+                    cursor: "pointer",
+                  }}
+                >
+                  Add a sample item
+                </button>
+              </div>
+            </div>
+          )}
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {cart.map((it, idx) => {
               const extrasSum = (it.extras || []).reduce(
@@ -9499,6 +10341,45 @@ const cogs = Number(
                 }}
               />
             </label>
+          </div>
+
+          {/* Discount */}
+          <div style={{ margin: "8px 0 12px", display: "grid", gap: 8 }}>
+            <div style={{ fontWeight: 700 }}>Discount</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+              <select
+                value={discountType}
+                onChange={(e) => setDiscountType(e.target.value)}
+                style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${btnBorder}` }}
+              >
+                <option value="percent">Percent (%)</option>
+                <option value="amount">Amount (E£)</option>
+              </select>
+              <input
+                type="number"
+                min="0"
+                value={discountValue}
+                onChange={(e) => setDiscountValue(Number(e.target.value || 0))}
+                style={{ width: 140, padding: "6px 8px", borderRadius: 6, border: `1px solid ${btnBorder}` }}
+              />
+              <input
+                type="text"
+                placeholder="Reason (optional)"
+                value={discountNote}
+                onChange={(e) => setDiscountNote(e.target.value)}
+                style={{
+                  flex: "1 1 220px",
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  border: `1px solid ${btnBorder}`,
+                  background: dark ? "#1e1e1e" : "white",
+                  color: dark ? "#eee" : "#000",
+                }}
+              />
+              {discountAmount > 0 && (
+                <span style={{ fontWeight: 600 }}>Applied: -E£{discountAmount.toFixed(2)}</span>
+              )}
+            </div>
           </div>
 
           {/* Selection groups & Checkout */}
@@ -9648,14 +10529,7 @@ const cogs = Number(
       <b>
         E£
         {(
-          Math.max(
-            0,
-            Number(cashReceived || 0) -
-              (cart.reduce((s, b) => {
-                const ex = (b.extras || []).reduce((t, e) => t + Number(e.price || 0), 0);
-                return s + (Number(b.price || 0) + ex) * Number(b.qty || 1);
-              }, 0) + (orderType === "Delivery" ? Number(deliveryFee || 0) : 0))
-          ) || 0
+          Math.max(0, Number(cashReceived || 0) - Number(orderTotal || 0)) || 0
         ).toFixed(2)}
       </b>
     </small>
@@ -9887,22 +10761,24 @@ const cogs = Number(
               }}
             >
               <div>
-                <strong>Order Total (incl. delivery):</strong>{" "}
-                E£
-                {(
-                  cart.reduce((s, b) => {
-                    const ex = (b.extras || []).reduce(
-                      (t, e) => t + Number(e.price || 0),
-                      0
-                    );
-                    return (
-                      s + (Number(b.price || 0) + ex) * Number(b.qty || 1)
-                    );
-                  }, 0) +
-                  (orderType === "Delivery"
-                    ? Number(deliveryFee || 0)
-                    : 0)
-                ).toFixed(2)}
+                <div style={{ display: "grid", gap: 4 }}>
+                  <div>
+                    <strong>Items Subtotal:</strong> E£{cartSubtotal.toFixed(2)}
+                  </div>
+                  {discountAmount > 0 && (
+                    <div>
+                      <strong>Discount:</strong> -E£{discountAmount.toFixed(2)}
+                    </div>
+                  )}
+                  {orderType === "Delivery" && (
+                    <div>
+                      <strong>Delivery Fee:</strong> E£{Number(deliveryFee || 0).toFixed(2)}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 16 }}>
+                    <strong>Order Total:</strong> E£{orderTotal.toFixed(2)}
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -14316,6 +15192,178 @@ setExtraList((arr) => [
 </div>
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {isTourOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: dark ? "#1f1f1f" : "#fff",
+              color: dark ? "#fff" : "#000",
+              borderRadius: 12,
+              padding: 20,
+              width: "min(520px, 90vw)",
+              boxShadow: "0 10px 24px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  Step {tourStep + 1} of {DEMO_TOUR_STEPS.length}
+                </div>
+                <div style={{ fontWeight: 800, fontSize: 20, marginTop: 4 }}>
+                  {DEMO_TOUR_STEPS[tourStep]?.title}
+                </div>
+              </div>
+              <button
+                onClick={() => setIsTourOpen(false)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  fontSize: 20,
+                  cursor: "pointer",
+                  color: dark ? "#fff" : "#000",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ marginTop: 12, lineHeight: 1.5 }}>
+              {DEMO_TOUR_STEPS[tourStep]?.description}
+            </p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setTourStep((s) => Math.max(0, s - 1))}
+                disabled={tourStep === 0}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: `1px solid ${btnBorder}`,
+                  background: dark ? "#2c2c2c" : "#f1f1f1",
+                  cursor: tourStep === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                Back
+              </button>
+              {tourStep < DEMO_TOUR_STEPS.length - 1 ? (
+                <button
+                  onClick={() => setTourStep((s) => Math.min(DEMO_TOUR_STEPS.length - 1, s + 1))}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#43a047",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsTourOpen(false)}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#1976d2",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  Finish Tour
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {receiptPreviewOrder && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 9998,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: dark ? "#1f1f1f" : "#fff",
+              borderRadius: 12,
+              width: "min(720px, 95vw)",
+              maxHeight: "90vh",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 14px",
+                borderBottom: `1px solid ${cardBorder}`,
+              }}
+            >
+              <strong>Receipt Preview — Order #{receiptPreviewOrder.orderNo}</strong>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() =>
+                    printReceiptHTML(
+                      receiptPreviewOrder,
+                      Number(preferredPaperWidthMm) || 80,
+                      "Customer"
+                    )
+                  }
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: `1px solid ${btnBorder}`,
+                    background: "#fff59d",
+                    cursor: "pointer",
+                  }}
+                >
+                  Print receipt
+                </button>
+                <button
+                  onClick={() => setReceiptPreviewOrder(null)}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: `1px solid ${btnBorder}`,
+                    background: dark ? "#2c2c2c" : "#f1f1f1",
+                    cursor: "pointer",
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <iframe
+              title="Receipt preview"
+              srcDoc={receiptPreviewHtml}
+              style={{ border: "none", flex: 1, background: "#f6f6f6" }}
+            />
           </div>
         </div>
       )}
