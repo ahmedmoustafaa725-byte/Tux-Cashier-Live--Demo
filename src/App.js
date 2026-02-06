@@ -2382,6 +2382,139 @@ const DEFAULT_INVENTORY = [
   { id: "meat",   name: "Meat",   unit: "g",     qty: 0, costPerUnit: 0, minQty: 0 },
   { id: "cheese", name: "Cheese", unit: "slices",qty: 0, costPerUnit: 0, minQty: 0 },
 ];
+const DEMO_INVENTORY = [
+  { id: "meat", name: "Beef Patty", unit: "g", qty: 12500, costPerUnit: 0.18, minQty: 2500 },
+  { id: "bun", name: "Burger Bun", unit: "pcs", qty: 220, costPerUnit: 2.2, minQty: 40 },
+  { id: "cheese", name: "Cheese", unit: "slices", qty: 340, costPerUnit: 1.1, minQty: 60 },
+  { id: "fries", name: "Fries Potato", unit: "g", qty: 12000, costPerUnit: 0.05, minQty: 2000 },
+  { id: "oil", name: "Frying Oil", unit: "ml", qty: 8000, costPerUnit: 0.02, minQty: 1500 },
+  { id: "lettuce", name: "Lettuce", unit: "g", qty: 1800, costPerUnit: 0.01, minQty: 300 },
+  { id: "tomato", name: "Tomato", unit: "g", qty: 2400, costPerUnit: 0.015, minQty: 400 },
+  { id: "sauce", name: "House Sauce", unit: "ml", qty: 5000, costPerUnit: 0.03, minQty: 800 },
+];
+const DEMO_MENU = BASE_MENU.map((item) => {
+  const usesById = {
+    1: { meat: 180, bun: 1, cheese: 1, lettuce: 12, tomato: 20, sauce: 10 },
+    2: { meat: 260, bun: 1, cheese: 2, lettuce: 12, tomato: 20, sauce: 12 },
+    3: { meat: 340, bun: 1, cheese: 3, lettuce: 12, tomato: 20, sauce: 14 },
+    4: { meat: 420, bun: 1, cheese: 4, lettuce: 12, tomato: 20, sauce: 16 },
+    14: { meat: 190, bun: 1, cheese: 2, lettuce: 15, tomato: 22, sauce: 12 },
+    15: { meat: 280, bun: 1, cheese: 3, lettuce: 15, tomato: 22, sauce: 14 },
+    16: { meat: 360, bun: 1, cheese: 4, lettuce: 15, tomato: 22, sauce: 16 },
+    17: { meat: 440, bun: 1, cheese: 5, lettuce: 15, tomato: 22, sauce: 18 },
+    5: { fries: 180, oil: 18 },
+    6: { fries: 200, oil: 18, cheese: 1 },
+    7: { fries: 200, oil: 18, cheese: 1, sauce: 8 },
+    8: { fries: 240, oil: 20, sauce: 12 },
+    9: { fries: 260, oil: 20, sauce: 12 },
+    10: { meat: 160, bun: 1, cheese: 1, sauce: 8 },
+    11: { meat: 190, bun: 1, cheese: 2, sauce: 10 },
+    12: {},
+    13: {},
+  };
+  return { ...item, uses: usesById[item.id] || item.uses || {} };
+});
+const DEMO_EXTRAS = BASE_EXTRAS.map((item) => {
+  const usesById = {
+    101: { meat: 100 },
+    102: { meat: 60 },
+    103: { cheese: 1 },
+    104: { sauce: 15 },
+    105: { sauce: 10 },
+    106: { lettuce: 10 },
+    107: { sauce: 5 },
+    108: { sauce: 12 },
+    109: { bun: 1 },
+    110: { tomato: 10 },
+    112: { cheese: 1 },
+    113: { sauce: 8 },
+  };
+  return { ...item, uses: usesById[item.id] || item.uses || {} };
+});
+const DEMO_PURCHASE_CATEGORIES = normalizePurchaseCategories([
+  "Meat",
+  "Bakery",
+  "Dairy",
+  "Produce",
+  "Packaging",
+  "Cleaning",
+]);
+const DEMO_PAYMENT_METHODS = ["Cash", "Card", "Instapay", "Fawry"];
+const DEMO_ORDER_TYPES = ["Take-Away", "Dine-in", "Delivery"];
+const DEMO_WORKERS = ["Hassan", "Andiel", "Warda", "Ahmed", "Hazem", "Mona"];
+const DEMO_WORKER_PROFILES = [
+  { id: "w_hassan", name: "Hassan", pin: "1234", rate: 45, isActive: false },
+  { id: "w_andiel", name: "Andiel", pin: "2345", rate: 38, isActive: false },
+  { id: "w_warda", name: "Warda", pin: "3456", rate: 25, isActive: false },
+  { id: "w_mona", name: "Mona", pin: "4567", rate: 32, isActive: false },
+];
+const DEMO_UTILITY_BILLS = normalizeUtilityBills({
+  electricity: { amount: 4200, units: 1800 },
+  gas: { amount: 900, units: 260 },
+  water: { amount: 650, units: 1400 },
+});
+const DEMO_LABOR_PROFILE = normalizeLaborProfile({
+  payout: 8200,
+  productiveHours: 210,
+});
+const DEMO_EQUIPMENT = normalizeEquipmentList([
+  { id: "eq_griddle", name: "Flat Top Griddle", electricKw: 5.2, gasM3PerHour: 0, waterLPerMin: 0 },
+  { id: "eq_fryer", name: "Double Fryer", electricKw: 3.4, gasM3PerHour: 0, waterLPerMin: 0 },
+  { id: "eq_fridge", name: "Prep Fridge", electricKw: 1.2, gasM3PerHour: 0, waterLPerMin: 0 },
+]);
+const TOP_TAB_LABELS = {
+  orders: "Orders",
+  board: "Orders Board",
+  expenses: "Expenses",
+  usage: "Inventory Usage",
+  reconcile: "Reconcile",
+  admin: "Admin",
+};
+const ADMIN_TAB_LABELS = {
+  inventory: "Inventory",
+  purchases: "Purchases",
+  cogs: "COGS",
+  bank: "Bank",
+  workerlog: "Worker Log",
+  contacts: "Customer Contacts",
+  reports: "Reports",
+  edit: "Edit",
+  settings: "Settings",
+};
+const TOP_TAB_DESCRIPTIONS = {
+  orders:
+    "Create new orders, add items/extras, select payment methods, and print receipts.",
+  board:
+    "Track order status at a glance, including online orders, and update fulfillment progress.",
+  expenses:
+    "Log operational expenses, track spending, and review line-item costs.",
+  usage:
+    "Analyze inventory usage by week or month with purchases and sales combined.",
+  reconcile:
+    "Count cash and payment totals, compare expected vs actual, and save reconciliation snapshots.",
+  admin:
+    "Manage core business settings, inventory, reports, and staff from one place.",
+};
+const ADMIN_TAB_DESCRIPTIONS = {
+  inventory:
+    "View stock levels, adjust quantities, and monitor low-stock alerts.",
+  purchases:
+    "Track ingredient purchases, categories, and print purchasing reports.",
+  cogs:
+    "Review cost of goods sold, margins, and pricing guidance for menu items.",
+  bank:
+    "Record deposits/withdrawals and review cash flow by day or month.",
+  workerlog:
+    "Review worker sessions, hours, and shift activity history.",
+  contacts:
+    "See customer profiles, lifetime spend, and contact details for follow-ups.",
+  reports:
+    "Generate sales, margins, and performance reports for the selected period.",
+  edit:
+    "Update menu items, extras, categories, and operational settings.",
+  settings:
+    "Configure admin PINs, delivery zones, printing, and system preferences.",
+};
 const DEFAULT_UTILITY_BILLS = {
   electricity: { amount: 0, units: 0 },
   gas: { amount: 0, units: 0 },
@@ -2508,6 +2641,398 @@ function getLatestPurchaseForInv(inventoryItem, purchases, purchaseCategories) {
 }
 const getNextMenuId = (menu = []) =>
   (menu.reduce((m, it) => Math.max(m, Number(it?.id ?? 0)), 0) || 0) + 1;
+
+function buildDemoState() {
+  const now = new Date();
+  const daysAgo = (days, hours = 12) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - days);
+    d.setHours(hours, 15, 0, 0);
+    return d;
+  };
+  const menuById = new Map(DEMO_MENU.map((item) => [item.id, item]));
+  const extrasById = new Map(DEMO_EXTRAS.map((item) => [item.id, item]));
+  const categoryByName = new Map(
+    DEMO_PURCHASE_CATEGORIES.map((cat) => [String(cat.name || "").toLowerCase(), cat])
+  );
+
+  const buildLine = (menuId, qty, extraIds = []) => {
+    const menuItem = menuById.get(menuId);
+    if (!menuItem) return null;
+    const extras = extraIds
+      .map((id) => extrasById.get(id))
+      .filter(Boolean)
+      .map((ex) => ({ id: ex.id, name: ex.name, price: ex.price }));
+    return {
+      id: menuItem.id,
+      name: menuItem.name,
+      price: menuItem.price,
+      qty,
+      extras,
+    };
+  };
+  const calcItemsTotal = (cart = []) =>
+    cart.reduce((sum, line) => {
+      const extrasTotal = (line.extras || []).reduce(
+        (acc, ex) => acc + Number(ex.price || 0),
+        0
+      );
+      return sum + (Number(line.price || 0) + extrasTotal) * Number(line.qty || 1);
+    }, 0);
+  const buildOrder = ({
+    orderNo,
+    date,
+    cart,
+    paymentParts,
+    orderType = "Take-Away",
+    deliveryFee = 0,
+    deliveryName = "",
+    deliveryPhone = "",
+    deliveryAddress = "",
+    deliveryZoneId = "",
+    worker = "Hassan",
+    note = "",
+  }) => {
+    const itemsTotal = Number(calcItemsTotal(cart).toFixed(2));
+    const total = Number((itemsTotal + Number(deliveryFee || 0)).toFixed(2));
+    const paymentLabel = summarizePaymentParts(
+      paymentParts,
+      paymentParts?.[0]?.method || "Cash"
+    );
+    return enrichOrderWithChannel({
+      orderNo,
+      date,
+      worker,
+      payment: paymentLabel,
+      paymentParts,
+      orderType,
+      deliveryFee,
+      deliveryName,
+      deliveryPhone,
+      deliveryAddress,
+      deliveryZoneId,
+      total,
+      itemsTotal,
+      cashReceived: paymentLabel === "Cash" ? total : null,
+      changeDue: paymentLabel === "Cash" ? 0 : null,
+      cart,
+      done: true,
+      voided: false,
+      restockedAt: undefined,
+      note,
+      idemKey: `demo_${orderNo}`,
+      source: "onsite",
+    });
+  };
+
+  const order1Cart = [
+    buildLine(1, 2, [103, 108]),
+    buildLine(5, 1),
+  ].filter(Boolean);
+  const order2Cart = [
+    buildLine(2, 1, [102]),
+    buildLine(6, 1),
+  ].filter(Boolean);
+  const order3Cart = [
+    buildLine(15, 1, [103]),
+    buildLine(12, 2),
+  ].filter(Boolean);
+  const order4Cart = [
+    buildLine(10, 2, [108]),
+    buildLine(5, 1),
+  ].filter(Boolean);
+  const order5Cart = [
+    buildLine(8, 1),
+    buildLine(13, 2),
+  ].filter(Boolean);
+
+  const demoOrders = [
+    buildOrder({
+      orderNo: 101,
+      date: daysAgo(0, 11),
+      cart: order1Cart,
+      paymentParts: [{ method: "Cash", amount: calcItemsTotal(order1Cart) }],
+      note: "Lunch rush combo.",
+    }),
+    buildOrder({
+      orderNo: 102,
+      date: daysAgo(0, 13),
+      cart: order2Cart,
+      paymentParts: [{ method: "Card", amount: calcItemsTotal(order2Cart) }],
+      orderType: "Dine-in",
+      note: "Table 7.",
+    }),
+    buildOrder({
+      orderNo: 103,
+      date: daysAgo(1, 19),
+      cart: order3Cart,
+      paymentParts: [{ method: "Instapay", amount: calcItemsTotal(order3Cart) + 20 }],
+      orderType: "Delivery",
+      deliveryFee: 20,
+      deliveryName: "Karim Mostafa",
+      deliveryPhone: "01001230011",
+      deliveryAddress: "32 Nile View St.",
+      deliveryZoneId: "zone-a",
+      note: "Extra napkins.",
+    }),
+    buildOrder({
+      orderNo: 104,
+      date: daysAgo(2, 16),
+      cart: order4Cart,
+      paymentParts: [
+        { method: "Cash", amount: 120 },
+        { method: "Instapay", amount: Math.max(0, calcItemsTotal(order4Cart) - 120) },
+      ],
+      note: "Split payment.",
+    }),
+    buildOrder({
+      orderNo: 105,
+      date: daysAgo(3, 18),
+      cart: order5Cart,
+      paymentParts: [{ method: "Fawry", amount: calcItemsTotal(order5Cart) }],
+      note: "Evening pickup.",
+    }),
+  ].filter(Boolean);
+
+  const historicalOrders = [
+    buildOrder({
+      orderNo: 95,
+      date: daysAgo(6, 12),
+      cart: [buildLine(4, 1, [103]), buildLine(5, 1)].filter(Boolean),
+      paymentParts: [{ method: "Card", amount: 240 }],
+      orderType: "Dine-in",
+      note: "Weekend special.",
+    }),
+    buildOrder({
+      orderNo: 96,
+      date: daysAgo(7, 14),
+      cart: [buildLine(3, 1), buildLine(12, 1)].filter(Boolean),
+      paymentParts: [{ method: "Cash", amount: 180 }],
+      note: "Quick bite.",
+    }),
+    buildOrder({
+      orderNo: 97,
+      date: daysAgo(9, 19),
+      cart: [buildLine(14, 1, [108]), buildLine(6, 1)].filter(Boolean),
+      paymentParts: [{ method: "Instapay", amount: 190 }],
+      orderType: "Delivery",
+      deliveryFee: 20,
+      deliveryName: "Mona Kamel",
+      deliveryPhone: "01009876543",
+      deliveryAddress: "15 Garden City",
+      deliveryZoneId: "zone-b",
+      note: "Leave at door.",
+    }),
+  ].filter(Boolean);
+
+  const demoCustomers = [
+    {
+      id: "cust_1",
+      name: "Mona Kamel",
+      phone: "01009876543",
+      address: "15 Garden City",
+      zoneId: "zone-b",
+      tags: ["VIP"],
+    },
+    {
+      id: "cust_2",
+      name: "Karim Mostafa",
+      phone: "01001230011",
+      address: "32 Nile View St.",
+      zoneId: "zone-a",
+      tags: ["Regular"],
+    },
+    {
+      id: "cust_3",
+      name: "Layla Salah",
+      phone: "01112223334",
+      address: "5 Downtown Square",
+      zoneId: "zone-c",
+      tags: ["New"],
+    },
+  ];
+
+  const demoExpenses = [
+    {
+      id: "exp_demo_1",
+      name: "Fuel for generator",
+      unit: "L",
+      qty: 25,
+      unitPrice: 18,
+      note: "Weekly refill",
+      date: daysAgo(1, 9),
+    },
+    {
+      id: "exp_demo_2",
+      name: "Packaging supplies",
+      unit: "box",
+      qty: 3,
+      unitPrice: 220,
+      note: "Takeaway boxes",
+      date: daysAgo(3, 12),
+    },
+    {
+      id: "exp_demo_3",
+      name: "Gas canister",
+      unit: "pcs",
+      qty: 1,
+      unitPrice: 450,
+      note: "Kitchen backup",
+      date: daysAgo(5, 10),
+    },
+  ];
+
+  const demoPurchases = [
+    {
+      id: "pur_demo_1",
+      categoryId: categoryByName.get("meat")?.id || "",
+      itemName: "Ground beef 80/20",
+      unit: "kg",
+      qty: 12,
+      unitPrice: 145,
+      date: daysAgo(1, 8),
+      ingredientId: "meat",
+    },
+    {
+      id: "pur_demo_2",
+      categoryId: categoryByName.get("bakery")?.id || "",
+      itemName: "Brioche buns",
+      unit: "dozen",
+      qty: 8,
+      unitPrice: 38,
+      date: daysAgo(2, 9),
+      ingredientId: "bun",
+    },
+    {
+      id: "pur_demo_3",
+      categoryId: categoryByName.get("dairy")?.id || "",
+      itemName: "Cheddar slices",
+      unit: "slice",
+      qty: 200,
+      unitPrice: 1.2,
+      date: daysAgo(4, 11),
+      ingredientId: "cheese",
+    },
+    {
+      id: "pur_demo_4",
+      categoryId: categoryByName.get("produce")?.id || "",
+      itemName: "Potatoes",
+      unit: "kg",
+      qty: 22,
+      unitPrice: 25,
+      date: daysAgo(3, 8),
+      ingredientId: "fries",
+    },
+    {
+      id: "pur_demo_5",
+      categoryId: categoryByName.get("produce")?.id || "",
+      itemName: "Fresh lettuce",
+      unit: "kg",
+      qty: 6,
+      unitPrice: 35,
+      date: daysAgo(2, 7),
+      ingredientId: "lettuce",
+    },
+  ];
+
+  const demoBankTx = [
+    {
+      id: "tx_demo_1",
+      type: "deposit",
+      amount: 2200,
+      worker: "Hassan",
+      note: "Daily cash drop",
+      date: daysAgo(0, 20),
+    },
+    {
+      id: "tx_demo_2",
+      type: "withdraw",
+      amount: 600,
+      worker: "Warda",
+      note: "Supplier payment",
+      date: daysAgo(2, 15),
+    },
+    {
+      id: "tx_demo_3",
+      type: "adjustUp",
+      amount: 150,
+      worker: "Ahmed",
+      note: "Register correction",
+      date: daysAgo(4, 18),
+    },
+  ];
+
+  const demoWorkerSessions = [
+    {
+      id: "ws_demo_1",
+      name: "Hassan",
+      rate: 45,
+      signInAt: daysAgo(0, 9),
+      signOutAt: daysAgo(0, 17),
+    },
+    {
+      id: "ws_demo_2",
+      name: "Warda",
+      rate: 25,
+      signInAt: daysAgo(1, 10),
+      signOutAt: daysAgo(1, 18),
+    },
+    {
+      id: "ws_demo_3",
+      name: "Mona",
+      rate: 32,
+      signInAt: daysAgo(2, 11),
+      signOutAt: daysAgo(2, 19),
+    },
+  ];
+
+  const demoDayMeta = {
+    startedBy: "Hassan",
+    currentWorker: "Hassan",
+    startedAt: daysAgo(0, 9),
+    endedAt: null,
+    endedBy: "",
+    lastReportAt: null,
+    resetBy: "",
+    resetAt: null,
+    reconciledAt: null,
+    shiftChanges: [
+      { name: "Hassan", at: daysAgo(0, 9) },
+      { name: "Warda", at: daysAgo(0, 13) },
+    ],
+  };
+
+  const allOrders = [...demoOrders, ...historicalOrders];
+  const nextOrderNo =
+    Math.max(0, ...allOrders.map((o) => Number(o?.orderNo || 0))) + 1;
+
+  return {
+    menu: DEMO_MENU,
+    extraList: DEMO_EXTRAS,
+    inventory: DEMO_INVENTORY,
+    workers: DEMO_WORKERS,
+    workerProfiles: DEMO_WORKER_PROFILES,
+    paymentMethods: DEMO_PAYMENT_METHODS,
+    orderTypes: DEMO_ORDER_TYPES,
+    defaultDeliveryFee: DEFAULT_DELIVERY_FEE,
+    utilityBills: DEMO_UTILITY_BILLS,
+    laborProfile: DEMO_LABOR_PROFILE,
+    equipmentList: DEMO_EQUIPMENT,
+    purchaseCategories: DEMO_PURCHASE_CATEGORIES,
+    customers: demoCustomers,
+    deliveryZones: DEFAULT_ZONES,
+    orders: demoOrders,
+    historicalOrders,
+    expenses: demoExpenses,
+    historicalExpenses: demoExpenses.map((row) => ({ ...row, id: `${row.id}_hist` })),
+    purchases: demoPurchases,
+    historicalPurchases: demoPurchases.map((row) => ({ ...row, id: `${row.id}_hist` })),
+    bankTx: demoBankTx,
+    workerSessions: demoWorkerSessions,
+    dayMeta: demoDayMeta,
+    nextOrderNo,
+  };
+}
 
 function sumPaymentsByMethod(orders = []) {
   const totals = {};
@@ -3218,6 +3743,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("orders");
 const [adminSubTab, setAdminSubTab] = useState("inventory"); 
   const [dark, setDark] = useState(false);
+  const [demoMode, setDemoMode] = useState(() => Boolean(loadLocal().demoMode));
   const [workers, setWorkers] = useState(BASE_WORKERS);
   
 const [newWorker, setNewWorker] = useState("");
@@ -3528,6 +4054,116 @@ const resetUsageViewAdmin = () => {
   setUsageMonth(new Date().toISOString().slice(0, 7));
 
   alert("Inventory Usage data has been reset.");
+};
+
+const loadDemoData = () => {
+  const demo = buildDemoState();
+  setDemoMode(true);
+  setMenu(demo.menu);
+  setExtraList(demo.extraList);
+  setInventory(demo.inventory);
+  setWorkers(demo.workers);
+  setWorkerProfiles(demo.workerProfiles);
+  setPaymentMethods(demo.paymentMethods);
+  setOrderTypes(demo.orderTypes);
+  setDefaultDeliveryFee(demo.defaultDeliveryFee);
+  setUtilityBills(demo.utilityBills);
+  setLaborProfile(demo.laborProfile);
+  setEquipmentList(demo.equipmentList);
+  setPurchaseCategories(demo.purchaseCategories);
+  setCustomers(demo.customers);
+  setDeliveryZones(demo.deliveryZones);
+  setOrders(demo.orders);
+  setHistoricalOrders(demo.historicalOrders);
+  setExpenses(demo.expenses);
+  setHistoricalExpenses(demo.historicalExpenses);
+  setPurchases(demo.purchases);
+  setHistoricalPurchases(demo.historicalPurchases);
+  setBankTx(demo.bankTx);
+  setWorkerSessions(demo.workerSessions);
+  setDayMeta(demo.dayMeta);
+  setNextOrderNo(demo.nextOrderNo);
+  setInventoryLocked(false);
+  setInventorySnapshot([]);
+  setInventoryLockedAt(null);
+  setReconCounts({});
+  setReconHistory([]);
+  setReconSavedBy("");
+  setCart([]);
+  setSelectedBurger(null);
+  setSelectedExtras([]);
+  setSelectedQty(1);
+  setWorker("");
+  setPayment("");
+  setOrderNote("");
+  setDeliveryName("");
+  setDeliveryPhone("");
+  setDeliveryAddress("");
+  setDeliveryZoneId("");
+  setCustomerName("");
+  setCustomerPhone("");
+  setSyncWhatsappReady(false);
+  alert("Demo data loaded. You're now in demo mode ✨");
+};
+
+const resetDemoData = () => {
+  if (!window.confirm("Reset demo data and return to a clean state?")) return;
+  setDemoMode(false);
+  setMenu(BASE_MENU);
+  setExtraList(BASE_EXTRAS);
+  setInventory(DEFAULT_INVENTORY);
+  setWorkers(BASE_WORKERS);
+  setWorkerProfiles(BASE_WORKER_PROFILES);
+  setPaymentMethods(DEFAULT_PAYMENT_METHODS);
+  setOrderTypes(DEFAULT_ORDER_TYPES);
+  setDefaultDeliveryFee(DEFAULT_DELIVERY_FEE);
+  setUtilityBills(normalizeUtilityBills(DEFAULT_UTILITY_BILLS));
+  setLaborProfile(normalizeLaborProfile(DEFAULT_LABOR_PROFILE));
+  setEquipmentList(normalizeEquipmentList(BASE_EQUIPMENT));
+  setPurchaseCategories(normalizePurchaseCategories([]));
+  setCustomers([]);
+  setDeliveryZones(DEFAULT_ZONES);
+  setOrders([]);
+  setHistoricalOrders([]);
+  setExpenses([]);
+  setHistoricalExpenses([]);
+  setPurchases([]);
+  setHistoricalPurchases([]);
+  setBankTx([]);
+  setWorkerSessions([]);
+  setDayMeta({
+    startedBy: "",
+    currentWorker: "",
+    startedAt: null,
+    endedAt: null,
+    endedBy: "",
+    lastReportAt: null,
+    resetBy: "",
+    resetAt: null,
+    shiftChanges: [],
+  });
+  setNextOrderNo(1);
+  setInventoryLocked(false);
+  setInventorySnapshot([]);
+  setInventoryLockedAt(null);
+  setReconCounts({});
+  setReconHistory([]);
+  setReconSavedBy("");
+  setCart([]);
+  setSelectedBurger(null);
+  setSelectedExtras([]);
+  setSelectedQty(1);
+  setWorker("");
+  setPayment("");
+  setOrderNote("");
+  setDeliveryName("");
+  setDeliveryPhone("");
+  setDeliveryAddress("");
+  setDeliveryZoneId("");
+  setCustomerName("");
+  setCustomerPhone("");
+  setSyncWhatsappReady(false);
+  alert("Demo data cleared.");
 };
 
 const [newWName, setNewWName] = useState("");
@@ -4038,6 +4674,7 @@ useEffect(() => {
   if (Array.isArray(l.equipmentList)) setEquipmentList(normalizeEquipmentList(l.equipmentList));
   if (l.adminPins) setAdminPins((prev) => ({ ...prev, ...l.adminPins }));
   if (typeof l.dark === "boolean") setDark(l.dark);
+  if (typeof l.demoMode === "boolean") setDemoMode(l.demoMode);
   if (Array.isArray(l.workerProfiles)) setWorkerProfiles(l.workerProfiles);
   if (Array.isArray(l.workerSessions)) {
     setWorkerSessions(l.workerSessions.map(s => ({
@@ -4098,6 +4735,7 @@ if (typeof l.nextOrderNo === "number") setNextOrderNo(l.nextOrderNo);
   setLocalHydrated(true);
 }, [localHydrated]);
 useEffect(() => { saveLocalPartial({ menu }); }, [menu]);
+useEffect(() => { saveLocalPartial({ demoMode }); }, [demoMode]);
   useEffect(() => {
 saveLocalPartial({
   purchases: purchases.map(p => ({ ...p, date: toIso(p.date) }))
@@ -7946,7 +8584,7 @@ const generatePurchasesPDF = () => {
     y = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : y + 36;
     doc.text("Line Items", 14, y);
 
-    const lineBody = rows
+  const lineBody = rows
       .slice()
       .sort((a, b) => +new Date(a.date) - +new Date(b.date))
       .map((p) => {
@@ -7980,6 +8618,14 @@ const generatePurchasesPDF = () => {
   }
 };
 
+  const activeTabLabel =
+    activeTab === "admin"
+      ? `Admin — ${ADMIN_TAB_LABELS[adminSubTab] || "Admin"}`
+      : TOP_TAB_LABELS[activeTab] || "Tab";
+  const activeTabDescription =
+    activeTab === "admin"
+      ? ADMIN_TAB_DESCRIPTIONS[adminSubTab] || TOP_TAB_DESCRIPTIONS.admin
+      : TOP_TAB_DESCRIPTIONS[activeTab] || "";
 
   /* --------------------------- UI --------------------------- */
 
@@ -8114,6 +8760,65 @@ const generatePurchasesPDF = () => {
   </div>
 </div>
 
+{/* Demo Mode Banner */}
+<div
+  style={{
+    border: `1px solid ${cardBorder}`,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    background: demoMode ? "#fff8e1" : softBg,
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      gap: 12,
+      alignItems: "center",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    }}
+  >
+    <div>
+      <div style={{ fontWeight: 700 }}>
+        Demo Mode {demoMode ? "• Active" : "• Off"}
+      </div>
+      <div style={{ fontSize: 12, opacity: 0.8 }}>
+        Load sample orders, inventory, purchases, and customers so people can try the full flow quickly.
+      </div>
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <button
+        onClick={loadDemoData}
+        style={{
+          background: "#2e7d32",
+          color: "#fff",
+          border: "none",
+          borderRadius: 6,
+          padding: "8px 12px",
+          cursor: "pointer",
+          fontWeight: 700,
+        }}
+      >
+        Load Demo Data
+      </button>
+      <button
+        onClick={resetDemoData}
+        style={{
+          background: "#c62828",
+          color: "#fff",
+          border: "none",
+          borderRadius: 6,
+          padding: "8px 12px",
+          cursor: "pointer",
+          fontWeight: 700,
+        }}
+      >
+        Reset Demo Data
+      </button>
+    </div>
+  </div>
+</div>
 
 
 
@@ -8348,6 +9053,20 @@ const generatePurchasesPDF = () => {
         Lock Admin
       </button>
     </div>
+  </div>
+)}
+{activeTabDescription && (
+  <div
+    style={{
+      border: `1px solid ${cardBorder}`,
+      borderRadius: 10,
+      padding: 10,
+      marginBottom: 12,
+      background: dark ? "#151515" : "#fafafa",
+    }}
+  >
+    <div style={{ fontWeight: 700, marginBottom: 4 }}>{activeTabLabel}</div>
+    <div style={{ opacity: 0.85 }}>{activeTabDescription}</div>
   </div>
 )}
 {/* ───────────────────────────────── COGS TAB ───────────────────────────────── */}
