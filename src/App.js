@@ -443,6 +443,34 @@ function summarizePaymentParts(parts = [], fallbackMethod = "Online") {
   }
   return normalizePaymentMethodName(fallbackMethod) || fallbackMethod || "Online";
 }
+const CASHIER_FIREBASE_ENV = [
+  { env: "REACT_APP_CASHIER_FIREBASE_API_KEY", value: process.env.REACT_APP_CASHIER_FIREBASE_API_KEY },
+  { env: "REACT_APP_CASHIER_FIREBASE_AUTH_DOMAIN", value: process.env.REACT_APP_CASHIER_FIREBASE_AUTH_DOMAIN },
+  { env: "REACT_APP_CASHIER_FIREBASE_PROJECT_ID", value: process.env.REACT_APP_CASHIER_FIREBASE_PROJECT_ID },
+  { env: "REACT_APP_CASHIER_FIREBASE_STORAGE_BUCKET", value: process.env.REACT_APP_CASHIER_FIREBASE_STORAGE_BUCKET },
+  { env: "REACT_APP_CASHIER_FIREBASE_MESSAGING_SENDER_ID", value: process.env.REACT_APP_CASHIER_FIREBASE_MESSAGING_SENDER_ID },
+  { env: "REACT_APP_CASHIER_FIREBASE_APP_ID", value: process.env.REACT_APP_CASHIER_FIREBASE_APP_ID },
+];
+
+const ONLINE_FIREBASE_ENV = [
+  { env: "REACT_APP_MENU_FIREBASE_API_KEY", value: process.env.REACT_APP_MENU_FIREBASE_API_KEY },
+  { env: "REACT_APP_MENU_FIREBASE_AUTH_DOMAIN", value: process.env.REACT_APP_MENU_FIREBASE_AUTH_DOMAIN },
+  { env: "REACT_APP_MENU_FIREBASE_PROJECT_ID", value: process.env.REACT_APP_MENU_FIREBASE_PROJECT_ID },
+  { env: "REACT_APP_MENU_FIREBASE_STORAGE_BUCKET", value: process.env.REACT_APP_MENU_FIREBASE_STORAGE_BUCKET },
+  { env: "REACT_APP_MENU_FIREBASE_MESSAGING_SENDER_ID", value: process.env.REACT_APP_MENU_FIREBASE_MESSAGING_SENDER_ID },
+  { env: "REACT_APP_MENU_FIREBASE_APP_ID", value: process.env.REACT_APP_MENU_FIREBASE_APP_ID },
+  { env: "REACT_APP_MENU_FIREBASE_MEASUREMENT_ID", value: process.env.REACT_APP_MENU_FIREBASE_MEASUREMENT_ID },
+];
+
+const missingCashierFirebaseKeys = CASHIER_FIREBASE_ENV.filter((entry) => !entry.value).map(
+  (entry) => entry.env
+);
+const missingOnlineFirebaseKeys = ONLINE_FIREBASE_ENV.filter((entry) => !entry.value).map(
+  (entry) => entry.env
+);
+const hasCashierFirebaseConfig = missingCashierFirebaseKeys.length === 0;
+const hasOnlineFirebaseConfig = missingOnlineFirebaseKeys.length === 0;
+
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_CASHIER_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_CASHIER_FIREBASE_AUTH_DOMAIN,
@@ -526,14 +554,28 @@ async function sendEmailJsEmail(templateParams = {}) {
 }
 
 function ensureFirebase() {
-  const theApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  const auth = getAuth(theApp);
-  const db = getFirestore(theApp);
-  return { auth, db };
+  if (!hasCashierFirebaseConfig) {
+    console.error("Missing cashier Firebase config env vars", missingCashierFirebaseKeys);
+    return null;
+  }
+  try {
+    const theApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const auth = getAuth(theApp);
+    const db = getFirestore(theApp);
+    return { auth, db };
+  } catch (err) {
+    console.error("Failed to initialize cashier Firebase app", err);
+    return null;
+  }
 }
 
 function ensureOnlineFirebase() {
-  if (!onlineFirebaseConfig?.projectId) return null;
+  if (!hasOnlineFirebaseConfig || !onlineFirebaseConfig?.projectId) {
+    if (!hasOnlineFirebaseConfig) {
+      console.warn("Missing online Firebase config env vars", missingOnlineFirebaseKeys);
+    }
+    return null;
+  }
   try {
     return getApp(ONLINE_FIREBASE_APP_NAME);
   } catch (err) {
@@ -545,16 +587,6 @@ function ensureOnlineFirebase() {
     }
   }
 }
-function getOnlineServices() {
-  const app = ensureOnlineFirebase();
-  if (!app) return { onlineAuth: null, onlineDb: null };
-  return {
-    onlineAuth: getAuth(app),
-    onlineDb: getFirestore(app),
-  };
-}
-
-
 const SHOP_ID = "tux";
 // In your React POS app code (App.js)
 
@@ -724,49 +756,6 @@ function SundayWeekPicker({ selectedSunday, onSelect, dark = false, btnBorder = 
     const base = selectedStart || new Date();
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
-const [onlineFbUser, setOnlineFbUser] = useState(null);
-
-useEffect(() => {
-  const { onlineAuth } = getOnlineServices();
-  if (!onlineAuth) return;
-
-  // Keep session observed
-  const unsub = onAuthStateChanged(onlineAuth, (u) => {
-    setOnlineFbUser(u || null);
-    if (u) console.log("✅ tux-menu anonymous user:", u.uid);
-  });
-
-  // Ensure we are signed in anonymously
-  signInAnonymously(onlineAuth).catch((err) => {
-    console.error("❌ Anonymous sign-in to tux-menu failed:", err);
-  });
-
-  return () => unsub();
-}, []);
-function getDbForSource(source) {
-  if (source === "menu") {
-    const { onlineDb } = getOnlineServices();
-    return onlineDb;        // tux-menu Firestore
-  }
-  const { db } = ensureFirebase();
-  return db;                // primary POS Firestore
-}
-
-// Example when wiring listeners:
-ONLINE_ORDER_COLLECTIONS.forEach((def) => {
-  const dbForThis = getDbForSource(def.source);
-  if (!dbForThis) return;
-
-  // (Optional) gate menu listeners until anonymous auth is ready
-  if (def.source === "menu" && !onlineFbUser) return;
-
-  const colRef = collection(dbForThis, ...def.path);
-  const q = query(colRef, orderBy("createdAt", "desc"));
-  onSnapshot(q, (snap) => {
-    // merge/dedupe as you already do
-  });
-});
-
   useEffect(() => {
     if (!selectedStart) return;
     setViewMonth((prev) => {
@@ -3910,24 +3899,30 @@ const writeSeqRef = useRef(0);
   setReconCounts((prev) => ({ ...init, ...prev }));
 }, [dayMeta.startedAt, paymentMethods]);
   useEffect(() => {
-    try {
-      const { auth } = ensureFirebase();
-      setFbReady(true);
-      const unsub = onAuthStateChanged(auth, async (u) => {
-        if (!u) {
-          try {
-            await signInAnonymously(auth);
-          } catch (e) {
-            setCloudStatus((s) => ({ ...s, error: String(e) }));
-          }
-        } else {
-          setFbUser(u);
-        }
-      });
-      return () => unsub();
-    } catch (e) {
-      setCloudStatus((s) => ({ ...s, error: String(e) }));
+    const services = ensureFirebase();
+    if (!services) {
+      if (!hasCashierFirebaseConfig) {
+        setCloudStatus((s) => ({
+          ...s,
+          error: `Missing Firebase config: ${missingCashierFirebaseKeys.join(", ")}`,
+        }));
+      }
+      return undefined;
     }
+    const { auth } = services;
+    setFbReady(true);
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        try {
+          await signInAnonymously(auth);
+        } catch (e) {
+          setCloudStatus((s) => ({ ...s, error: String(e) }));
+        }
+      } else {
+        setFbUser(u);
+      }
+    });
+    return () => unsub();
   }, []);
   useEffect(() => {
   if (purchaseFilter === "day") {
@@ -4227,7 +4222,7 @@ useEffect(() => {
     return changed ? next : current;
   });
 }, [purchases, purchaseCategories, syncCostsFromPurchases]);
-const db = useMemo(() => (fbReady ? ensureFirebase().db : null), [fbReady]);
+const db = useMemo(() => (fbReady ? ensureFirebase()?.db ?? null : null), [fbReady]);
   const onlineFirebaseApp = useMemo(
     () => (fbReady ? ensureOnlineFirebase() : null),
     [fbReady]
@@ -7985,6 +7980,23 @@ const generatePurchasesPDF = () => {
 
   return (
     <div style={containerStyle}>
+      {!hasCashierFirebaseConfig && (
+        <div
+          style={{
+            background: "#fff3e0",
+            border: "1px solid #ffb74d",
+            borderRadius: 8,
+            padding: "10px 12px",
+            marginBottom: 12,
+            color: "#4e342e",
+            fontSize: 13,
+            lineHeight: 1.4,
+          }}
+        >
+          <strong>Firebase config missing.</strong> Set the following environment variables
+          and redeploy: {missingCashierFirebaseKeys.join(", ")}.
+        </div>
+      )}
    {/* Header */}
 <div
   style={{
